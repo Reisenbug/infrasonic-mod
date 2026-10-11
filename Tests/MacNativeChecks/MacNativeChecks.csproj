@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="P-OpusCore" HintPath="../../src/TerraVoice/lib/P-OpusCore.dll" />
+    <Reference Include="Silk.NET.Core" HintPath="../../src/TerraVoice/lib/Silk.NET.Core.dll" />
+    <Reference Include="Silk.NET.OpenAL" HintPath="../../src/TerraVoice/lib/Silk.NET.OpenAL.dll" />
+    <Reference Include="Silk.NET.OpenAL.Extensions.EXT" HintPath="../../src/TerraVoice/lib/Silk.NET.OpenAL.Extensions.EXT.dll" />
+    <Reference Include="Microsoft.DotNet.PlatformAbstractions" HintPath="../../src/TerraVoice/lib/Microsoft.DotNet.PlatformAbstractions.dll" />
+    <Reference Include="Microsoft.Extensions.DependencyModel" HintPath="../../src/TerraVoice/lib/Microsoft.Extensions.DependencyModel.dll" />
+    <Compile Include="../../src/TerraVoice/Native/rnnoise.cs" Link="rnnoise.cs" />
+    <Compile Include="../../src/TerraVoice/Native/ALMonoMicrophone.cs" Link="ALMonoMicrophone.cs" />
+    <Compile Include="../../src/TerraVoice/Native/NativeString.cs" Link="NativeString.cs" />
+  </ItemGroup>
+</Project>
