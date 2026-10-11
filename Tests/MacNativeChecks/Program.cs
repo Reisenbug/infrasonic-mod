@@ -43,6 +43,18 @@ if (packet.Length == 0 || decoded.Length != samples.Length || !decoded.Any(sampl
     throw new Exception("Opus round-trip failed.");
 Console.WriteLine($"Opus round-trip passed: {samples.Length} samples -> {packet.Length} bytes -> {decoded.Length} samples.");
 
+if (args.Length > 1)
+{
+    IntPtr probe = NativeLibrary.Load(Path.GetFullPath(args[1]));
+    var getBitrate = Marshal.GetDelegateForFunctionPointer<ProbeGetBitrate>(NativeLibrary.GetExport(probe, "infrasonic_get_bitrate"));
+    var setBitrate = Marshal.GetDelegateForFunctionPointer<ProbeSetBitrate>(NativeLibrary.GetExport(probe, "infrasonic_set_bitrate"));
+    IntPtr handle = (IntPtr)typeof(OpusEncoder).GetField("_handle", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).GetValue(encoder);
+    Console.WriteLine($"Managed setter requested 24000 bps; native getter measured {getBitrate(handle)} bps.");
+    int result = setBitrate(handle, 24000);
+    Console.WriteLine($"Native setter returned {result}; native getter measured {getBitrate(handle)} bps; next packet size={encoder.Encode(samples).Length} bytes.");
+    NativeLibrary.Free(probe);
+}
+
 rnnoise.rnnoise_create();
 try
 {
@@ -65,3 +77,8 @@ finally
     system.Unload();
 }
 Console.WriteLine("MAC_NATIVE_CHECKS_PASSED. No microphone opened or recording started.");
+
+[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+delegate int ProbeGetBitrate(IntPtr encoder);
+[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+delegate int ProbeSetBitrate(IntPtr encoder, int bitrate);
