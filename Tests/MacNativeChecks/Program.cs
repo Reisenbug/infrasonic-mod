@@ -4,7 +4,6 @@ using POpusCodec.Enums;
 using TerraVoice.Native;
 
 string repo = Path.GetFullPath(args[0]);
-string native = Path.GetFullPath(args[1]);
 Console.WriteLine($"Runtime={Environment.Version} OS={RuntimeInformation.OSDescription} Arch={RuntimeInformation.ProcessArchitecture}");
 var originalMap = new Dictionary<string, string>();
 try
@@ -18,14 +17,25 @@ catch (ArgumentException exception)
     Console.WriteLine($"Original macOS extraction reproduced: {exception.Message}");
 }
 
-NativeLibrary.SetDllImportResolver(typeof(OpusEncoder).Assembly, (name, _, _) =>
-    name == "libopus" ? NativeLibrary.Load(Path.Combine(native, "libopus.dylib")) : IntPtr.Zero);
-NativeLibrary.SetDllImportResolver(typeof(rnnoise).Assembly, (name, _, _) =>
-    name == "librnnoise" ? NativeLibrary.Load(Path.Combine(native, "librnnoise.dylib")) : IntPtr.Zero);
+string modRoot = Path.Combine(repo, "src/TerraVoice");
+TerraVoice.TerraVoice.CachePath = Path.Combine(Path.GetTempPath(), $"infrasonic-native-check-{Guid.NewGuid():N}");
+var modFile = new Terraria.ModLoader.Core.TmodFile();
+foreach (string file in Directory.GetFiles(Path.Combine(modRoot, "lib/Native"), "*", SearchOption.AllDirectories))
+{
+    string relative = Path.GetRelativePath(modRoot, file).Replace('\\', '/');
+    modFile.files.Add(relative, new() { Name = relative, SourcePath = file });
+}
+var system = new NativeFeatureSystem { Mod = new() { File = modFile } };
+system.Load();
+string cache = Path.Combine(TerraVoice.TerraVoice.CachePath, "Native", "osx-arm64", "2.1.3");
+string[] extracted = Directory.GetFiles(cache);
+if (extracted.Length != 3 || extracted.Any(file => Path.GetExtension(file) != ".dylib"))
+    throw new Exception("Production loader mixed platforms or failed to extract all macOS libraries.");
+Console.WriteLine("Production loader extracted only the three ARM64 dylibs into a versioned platform cache.");
 
 short[] samples = Enumerable.Range(0, 960).Select(i => (short)(Math.Sin(i * 2 * Math.PI * 440 / 48000) * 8000)).ToArray();
-using var encoder = new OpusEncoder(SamplingRate.Sampling48000, Channels.Mono, OpusApplicationType.Voip, Delay.Delay20ms);
-using var decoder = new OpusDecoder(SamplingRate.Sampling48000, Channels.Mono);
+var encoder = new OpusEncoder(SamplingRate.Sampling48000, Channels.Mono, OpusApplicationType.Voip, Delay.Delay20ms);
+var decoder = new OpusDecoder(SamplingRate.Sampling48000, Channels.Mono);
 encoder.Bitrate = 24000;
 byte[] packet = encoder.Encode(samples);
 short[] decoded = decoder.DecodePacket(packet);
@@ -44,13 +54,14 @@ finally
     rnnoise.rnnoise_destroy();
 }
 
-ALMonoMicrophone.LoadOpenAL(Path.Combine(native, "libopenal.dylib"));
 try
 {
     Console.WriteLine($"Original Silk.NET OpenAL wrapper loaded. Capture devices: {string.Join(", ", ALMonoMicrophone.GetDevices())}");
 }
 finally
 {
-    ALMonoMicrophone.UnloadOpenAL();
+    encoder.Dispose();
+    decoder.Dispose();
+    system.Unload();
 }
 Console.WriteLine("MAC_NATIVE_CHECKS_PASSED. No microphone opened or recording started.");

@@ -1,16 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-    <Import Project="../../catalyst/Mod.Build.targets" />
+    <Import Project="../tModLoader.targets" Condition="Exists('../tModLoader.targets')" />
+    <Import Project="../../../tModLoader.targets" Condition="!Exists('../tModLoader.targets')" />
 
     <PropertyGroup>
-        <TargetFramework>net6.0</TargetFramework>
+        <TargetFramework>net8.0</TargetFramework>
         <LangVersion>latest</LangVersion>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <Nullable>enable</Nullable>
         <RootNamespace>TerraVoice</RootNamespace>
 
-        <AssemblyPublicizerPaths>$(AssemblyPublicizerPaths);$(MSBuildThisFileDirectory)terravoice.publicizer.js</AssemblyPublicizerPaths>
-		<OverrideTMLBuildTask>true</OverrideTMLBuildTask>
     </PropertyGroup>
 
     <ItemGroup>
@@ -33,5 +32,17 @@
         <HintPath>lib\Silk.NET.OpenAL.Extensions.EXT.dll</HintPath>
       </Reference>
     </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Krafs.Publicizer" Version="2.2.1" PrivateAssets="all" />
+      <Publicize Include="tModLoader" IncludeVirtualMembers="false" IncludeCompilerGeneratedMembers="false" />
+    </ItemGroup>
+
+    <Target Name="BuildMod" AfterTargets="Build" Condition="'$(BuildMod)' == 'true'">
+      <PropertyGroup>
+        <NativeBuildPrefix Condition="$([MSBuild]::IsOSPlatform('OSX'))">DYLD_LIBRARY_PATH="$(tMLSteamPath)Libraries/Native/OSX" </NativeBuildPrefix>
+      </PropertyGroup>
+      <Exec Command="$(NativeBuildPrefix)dotnet $(tMLServerPath) -build &quot;$(ProjectDir)&quot; -eac &quot;$(TargetPath)&quot; -define &quot;$(DefineConstants)&quot; -unsafe $(AllowUnsafeBlocks) $(ExtraBuildModFlags)" WorkingDirectory="$(tMLSteamPath)" />
+    </Target>
 
 </Project>

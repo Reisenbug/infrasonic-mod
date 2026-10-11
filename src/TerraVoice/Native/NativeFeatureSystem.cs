@@ -35,8 +35,6 @@ internal class NativeFeatureSystem : ModSystem
                 ? _loadLibrariesTextLocalization["zh-Hans"]
                 : _loadLibrariesTextLocalization["default"];
 
-        Directory.CreateDirectory(TerraVoice.CachePath);
-
         Dictionary<string, string> binaryMap = ExtractPlatformBinaries();
 
         foreach (string key in assemblyHints.Keys)
@@ -47,6 +45,9 @@ internal class NativeFeatureSystem : ModSystem
 
             NativeLibrary.SetDllImportResolver(assembly, (name, assembly, dllSearchPath) =>
             {
+                if (name != key)
+                    return IntPtr.Zero;
+
                 if (!loadedLibs.ContainsKey(key))
                 {
                     IntPtr handle = NativeLibrary.Load(path);
@@ -90,24 +91,16 @@ internal class NativeFeatureSystem : ModSystem
     {
         Dictionary<string, string> binaries = new();
 
-        // Don't need to use system path separators as this only refers to the tmod file.
-        string path = $"lib/Native/";
-
-        // No macOS for the forseeable future.
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            path += "win64";
-        }
-        else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-        {
-            path += "linux64";
-        }
+        string platform = GetPlatformDirectory();
+        string path = $"lib/Native/{platform}/";
+        string cachePath = Path.Combine(TerraVoice.CachePath, "Native", platform, Mod.Version.ToString());
+        Directory.CreateDirectory(cachePath);
 
         IEnumerable<FileEntry> nativeLibraries = Mod.File.files.Where(f => f.Key.StartsWith(path)).Select(f => f.Value);
 
         foreach (FileEntry fileEntry in nativeLibraries)
         {
-            string destinationPath = Path.Combine(TerraVoice.CachePath, Path.GetFileName(fileEntry.Name));
+            string destinationPath = Path.Combine(cachePath, Path.GetFileName(fileEntry.Name));
 
             binaries.Add(Path.GetFileNameWithoutExtension(fileEntry.Name), destinationPath);
 
@@ -118,5 +111,16 @@ internal class NativeFeatureSystem : ModSystem
         }
 
         return binaries;
+    }
+
+    private static string GetPlatformDirectory()
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            return "win64";
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            return "linux64";
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
+            return "osx-arm64";
+        throw new PlatformNotSupportedException($"InfraSonic has no native libraries for {RuntimeInformation.OSDescription} / {RuntimeInformation.ProcessArchitecture}.");
     }
 }

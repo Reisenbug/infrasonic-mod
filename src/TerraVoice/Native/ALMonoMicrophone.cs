@@ -149,8 +149,8 @@ internal class ALMonoMicrophone : IDisposable
 
     public static void UnloadOpenAL()
     {
-        al.Dispose();
-        alc.Dispose();
+        al?.Dispose();
+        alc?.Dispose();
     }
 
     public delegate void BufferReady(short[] buffer);

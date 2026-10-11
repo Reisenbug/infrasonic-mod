@@ -15,5 +15,6 @@
     <Compile Include="../../src/TerraVoice/Native/rnnoise.cs" Link="rnnoise.cs" />
     <Compile Include="../../src/TerraVoice/Native/ALMonoMicrophone.cs" Link="ALMonoMicrophone.cs" />
     <Compile Include="../../src/TerraVoice/Native/NativeString.cs" Link="NativeString.cs" />
+    <Compile Include="../../src/TerraVoice/Native/NativeFeatureSystem.cs" Link="NativeFeatureSystem.cs" />
   </ItemGroup>
 </Project>
