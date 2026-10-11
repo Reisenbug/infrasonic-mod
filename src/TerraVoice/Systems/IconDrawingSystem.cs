@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework.Graphics;
 using System.Collections.Generic;
+using MonoMod.Utils;
 using System;
 using Terraria;
 using Terraria.ModLoader;
@@ -127,14 +128,15 @@ internal class IconDrawingSystem : ModSystem
 
     private void DrawPlayerHead(Player drawPlayer, ref Vector2 position, float opacity = 1f, float scale = 1f)
     {
+        var renderer = DynamicData.For(Main.MapPlayerRenderer);
         PlayerHeadDrawRenderTargetContent playerHeadDrawRenderTargetContent =
-            Main.MapPlayerRenderer._playerRenders[drawPlayer.whoAmI];
+            renderer.Get<PlayerHeadDrawRenderTargetContent[]>("_playerRenders")[drawPlayer.whoAmI];
 
         playerHeadDrawRenderTargetContent.UsePlayer(drawPlayer);
         playerHeadDrawRenderTargetContent.Request();
 
-        Main.MapPlayerRenderer._anyDirty = true;
-        Main.MapPlayerRenderer._drawData.Clear();
+        renderer.Set("_anyDirty", true);
+        renderer.Get<System.Collections.IList>("_drawData").Clear();
 
         if (!playerHeadDrawRenderTargetContent.IsReady)
             return;

@@ -27,7 +27,7 @@ foreach (string file in Directory.GetFiles(Path.Combine(modRoot, "lib/Native"), 
 }
 var system = new NativeFeatureSystem { Mod = new() { File = modFile } };
 system.Load();
-string cache = Path.Combine(TerraVoice.TerraVoice.CachePath, "Native", "osx-arm64", "2.1.3");
+string cache = Path.Combine(TerraVoice.TerraVoice.CachePath, "Native", "osx-arm64", system.Mod.Version.ToString());
 string[] extracted = Directory.GetFiles(cache);
 if (extracted.Length != 3 || extracted.Any(file => Path.GetExtension(file) != ".dylib"))
     throw new Exception("Production loader mixed platforms or failed to extract all macOS libraries.");
@@ -56,7 +56,7 @@ finally
 
 try
 {
-    Console.WriteLine($"Original Silk.NET OpenAL wrapper loaded. Capture devices: {string.Join(", ", ALMonoMicrophone.GetDevices())}");
+    Console.WriteLine($"Safe OpenAL interop loaded. Capture devices: {string.Join(", ", ALMonoMicrophone.GetDevices())}");
 }
 finally
 {

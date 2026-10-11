@@ -13,9 +13,11 @@ namespace Terraria.ModLoader
     }
     internal sealed class Mod
     {
-        public Version Version { get; } = new(2, 1, 3);
+        public Version Version { get; } = new(2, 1, 4);
         public Core.TmodFile File { get; set; }
         public TerraVoice.TestLogger Logger { get; } = new();
+        public List<string> GetFileNames() => File.files.Keys.ToList();
+        public Stream GetFileStream(string name) => File.GetStream(File.files[name]);
     }
 }
 

@@ -6,36 +6,16 @@
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
         <LangVersion>latest</LangVersion>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
         <Nullable>enable</Nullable>
         <RootNamespace>TerraVoice</RootNamespace>
 
     </PropertyGroup>
 
     <ItemGroup>
-      <Reference Include="Microsoft.DotNet.PlatformAbstractions">
-        <HintPath>lib\Microsoft.DotNet.PlatformAbstractions.dll</HintPath>
-      </Reference>
-      <Reference Include="Microsoft.Extensions.DependencyModel">
-        <HintPath>lib\Microsoft.Extensions.DependencyModel.dll</HintPath>
-      </Reference>
       <Reference Include="P-OpusCore">
         <HintPath>lib\P-OpusCore.dll</HintPath>
       </Reference>
-      <Reference Include="Silk.NET.Core">
-        <HintPath>lib\Silk.NET.Core.dll</HintPath>
-      </Reference>
-      <Reference Include="Silk.NET.OpenAL">
-        <HintPath>lib\Silk.NET.OpenAL.dll</HintPath>
-      </Reference>
-      <Reference Include="Silk.NET.OpenAL.Extensions.EXT">
-        <HintPath>lib\Silk.NET.OpenAL.Extensions.EXT.dll</HintPath>
-      </Reference>
-    </ItemGroup>
-
-    <ItemGroup>
-      <PackageReference Include="Krafs.Publicizer" Version="2.2.1" PrivateAssets="all" />
-      <Publicize Include="tModLoader" IncludeVirtualMembers="false" IncludeCompilerGeneratedMembers="false" />
     </ItemGroup>
 
     <Target Name="BuildMod" AfterTargets="Build" Condition="'$(BuildMod)' == 'true'">

@@ -3,9 +3,7 @@ using System.IO;
 using Terraria.ModLoader;
 using System.Linq;
 using System.Runtime.InteropServices;
-using static Terraria.ModLoader.Core.TmodFile;
 using System;
-using Terraria.ModLoader.UI;
 using System.Reflection;
 using POpusCodec;
 using Terraria.Localization;
@@ -30,10 +28,9 @@ internal class NativeFeatureSystem : ModSystem
 
     public override void Load()
     {
-        // Interface.loadMods.SetLoadStage($"{Mod.DisplayName}: Loading native libraries...", -1);
-        Interface.loadMods.SubProgressText = Language.ActiveCulture.Name is "zh-Hans"
+        Mod.Logger.Info(Language.ActiveCulture.Name is "zh-Hans"
                 ? _loadLibrariesTextLocalization["zh-Hans"]
-                : _loadLibrariesTextLocalization["default"];
+                : _loadLibrariesTextLocalization["default"]);
 
         Dictionary<string, string> binaryMap = ExtractPlatformBinaries();
 
@@ -74,15 +71,11 @@ internal class NativeFeatureSystem : ModSystem
         ALMonoMicrophone.UnloadOpenAL();
     }
 
-    private void CopyLibFromTmod(FileEntry entry, string path)
+    private void CopyLibFromTmod(string name, string path)
     {
-        using Stream stream = Mod.File.GetStream(entry);
-
-        byte[] bytes = new byte[entry.Length];
-
-        stream.Read(bytes, 0, bytes.Length);
-
-        File.WriteAllBytes(path, bytes);
+        using Stream stream = Mod.GetFileStream(name);
+        using FileStream destination = File.Create(path);
+        stream.CopyTo(destination);
 
         Mod.Logger.Info($"Successfully installed native library: {path}.");
     }
@@ -96,17 +89,17 @@ internal class NativeFeatureSystem : ModSystem
         string cachePath = Path.Combine(TerraVoice.CachePath, "Native", platform, Mod.Version.ToString());
         Directory.CreateDirectory(cachePath);
 
-        IEnumerable<FileEntry> nativeLibraries = Mod.File.files.Where(f => f.Key.StartsWith(path)).Select(f => f.Value);
+        IEnumerable<string> nativeLibraries = Mod.GetFileNames().Where(name => name.StartsWith(path));
 
-        foreach (FileEntry fileEntry in nativeLibraries)
+        foreach (string name in nativeLibraries)
         {
-            string destinationPath = Path.Combine(cachePath, Path.GetFileName(fileEntry.Name));
+            string destinationPath = Path.Combine(cachePath, Path.GetFileName(name));
 
-            binaries.Add(Path.GetFileNameWithoutExtension(fileEntry.Name), destinationPath);
+            binaries.Add(Path.GetFileNameWithoutExtension(name), destinationPath);
 
             if (!File.Exists(destinationPath))
             {
-                CopyLibFromTmod(fileEntry, destinationPath);
+                CopyLibFromTmod(name, destinationPath);
             }
         }
 

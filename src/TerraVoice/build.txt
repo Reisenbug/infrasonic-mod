@@ -1,7 +1,7 @@
 displayName = InfraSonic
 author = Oli, Cyrilly, 轩天一夏
-version = 2.1.3
-dllReferences = Microsoft.DotNet.PlatformAbstractions, Microsoft.Extensions.DependencyModel, P-OpusCore, Silk.NET.Core, Silk.NET.OpenAL, Silk.NET.OpenAL.Extensions.EXT
+version = 2.1.4
+dllReferences = P-OpusCore
 buildIgnore = *.csproj, *.user, obj\*, bin\*, .vs\*
 hideResources = false
 hideCode = false

@@ -1,156 +1,123 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Silk.NET.Core.Contexts;
-using Silk.NET.Core.Loader;
-using Silk.NET.OpenAL;
-using Silk.NET.OpenAL.Extensions.EXT;
-using Silk.NET.OpenAL.Extensions.EXT.Enumeration;
 using TerraVoice.Src.Native;
 
 namespace TerraVoice.Native;
 
-// Wrapper class for OpenTK's OpenAL bindings.
-// This allows the audio input devices to be enumerated, and initialised.
-// As well as this it will capture audio samples on a separate thread.
 internal class ALMonoMicrophone : IDisposable
 {
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate IntPtr OpenDevice(IntPtr name, uint frequency, int format, int bufferSize);
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate void DeviceAction(IntPtr device);
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate byte CloseDevice(IntPtr device);
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate void GetInteger(IntPtr device, int parameter, int size, out int value);
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate void CaptureSamples(IntPtr device, [Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)] short[] samples, int count);
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate IntPtr GetString(IntPtr device, int parameter);
+
+    private static IntPtr library;
+    private static OpenDevice openDevice;
+    private static DeviceAction captureStart;
+    private static DeviceAction captureStop;
+    private static CloseDevice closeDevice;
+    private static GetInteger getInteger;
+    private static CaptureSamples captureSamples;
+    private static GetString getString;
+
     public event BufferReady OnBufferReady;
-
-    private static AL al;
-    private static ALContext alc;
-    private static Capture capture;
-
     private readonly int desiredFrameSize;
-
-    private unsafe readonly Device* device;
-
+    private readonly IntPtr device;
     private readonly short[] buffer;
-
     private CancellationTokenSource source;
 
     public ALMonoMicrophone(string microphone, int captureFrameDurationMs, uint sampleRate)
     {
         desiredFrameSize = (int)(captureFrameDurationMs / 1000f * sampleRate);
-
-        unsafe
-        {
-            var alcCaptureOpenDevice = (delegate* unmanaged[Cdecl]<byte*, uint, BufferFormat, int, Device*>)capture.CurrentVTable.Load("alcCaptureOpenDevice");
-            using var microphoneNative = NativeString.AllocFromString(microphone);
-
-            device = alcCaptureOpenDevice((byte*)microphoneNative.Handle, sampleRate, BufferFormat.Mono16, desiredFrameSize);
-
-            if (device == null)
-            {
-                TerraVoice.Instance.Logger.Warn($"Failed to open device '{microphone}'!");
-            }
-        }
-
+        using var microphoneNative = NativeString.AllocFromString(microphone);
+        device = openDevice(microphoneNative.Handle, sampleRate, 0x1101, desiredFrameSize);
+        if (device == IntPtr.Zero)
+            TerraVoice.Instance.Logger.Warn($"Failed to open device '{microphone}'!");
         buffer = new short[desiredFrameSize];
     }
 
     public void StartRecording()
     {
-        unsafe
+        captureStart(device);
+        source = new();
+        CancellationToken token = source.Token;
+        Task.Factory.StartNew(() =>
         {
-            capture.CaptureStart(device);
-
-            source = new();
-            CancellationToken token = source.Token;
-
-            Task.Factory.StartNew(() =>
+            var spinWait = new SpinWait();
+            while (true)
             {
-                var spinWait = new SpinWait();
-
-                while (true)
+                if (token.IsCancellationRequested)
                 {
-                    if (token.IsCancellationRequested)
-                    {
-                        capture.CaptureStop(device);
-
-                        Array.Clear(buffer);
-
-                        return;
-                    }
-
-                    int samplesAvailable = capture.GetAvailableSamples(device);
-
-                    if (samplesAvailable >= desiredFrameSize)
-                    {
-                        fixed (short* pBuffer = buffer)
-                        {
-                            capture.CaptureSamples(device, pBuffer, desiredFrameSize);
-                        }
-
-                        short[] copy = new short[desiredFrameSize];
-
-                        Buffer.BlockCopy(buffer, 0, copy, 0, copy.Length * sizeof(short));
-
-                        OnBufferReady?.Invoke(copy);
-                    }
-
-                    spinWait.SpinOnce();
+                    captureStop(device);
+                    Array.Clear(buffer);
+                    return;
                 }
-            }, source.Token);
-        }
+                getInteger(device, 0x312, 1, out int samplesAvailable);
+                if (samplesAvailable >= desiredFrameSize)
+                {
+                    captureSamples(device, buffer, desiredFrameSize);
+                    short[] copy = new short[desiredFrameSize];
+                    Buffer.BlockCopy(buffer, 0, copy, 0, copy.Length * sizeof(short));
+                    OnBufferReady?.Invoke(copy);
+                }
+                spinWait.SpinOnce();
+            }
+        }, source.Token);
     }
 
-    public void StopRecording()
-    {
-        source?.Cancel();
-    }
+    public void StopRecording() => source?.Cancel();
 
     public void Dispose()
     {
         source?.Cancel();
-
-        unsafe
-        {
-            capture.CaptureCloseDevice(device);
-        }
+        closeDevice(device);
     }
 
     public static List<string> GetDevices()
     {
-        unsafe
+        var devices = new List<string>();
+        IntPtr current = getString(IntPtr.Zero, 0x310);
+        while (current != IntPtr.Zero && Marshal.ReadByte(current) != 0)
         {
-            if (!alc.TryGetExtension(null, out CaptureEnumerationEnumeration enumeration))
-            {
-                throw new Exception("OpenAL EXT could not be found.");
-            }
-
-            return enumeration.GetStringList(GetCaptureContextStringList.CaptureDeviceSpecifiers).ToList();
+            string name = Marshal.PtrToStringUTF8(current);
+            devices.Add(name);
+            current = IntPtr.Add(current, Encoding.UTF8.GetByteCount(name) + 1);
         }
+        return devices;
     }
+
+    private static T Bind<T>(string name) where T : Delegate =>
+        Marshal.GetDelegateForFunctionPointer<T>(NativeLibrary.GetExport(library, name));
 
     public static void LoadOpenAL(string openalPath)
     {
-        UnmanagedLibrary lib = new(
-            openalPath,
-            LibraryLoader.GetPlatformDefaultLoader(),
-            PathResolver.Default
-        );
-
-        DefaultNativeContext nativeContext = new(lib);
-
-        al = new(nativeContext);
-        alc = new(nativeContext);
-
-        unsafe
-        {
-            if (!alc.TryGetExtension(null, out capture))
-            {
-                throw new Exception("OpenAL EXT could not be found.");
-            }
-        }
+        library = NativeLibrary.Load(openalPath);
+        openDevice = Bind<OpenDevice>("alcCaptureOpenDevice");
+        captureStart = Bind<DeviceAction>("alcCaptureStart");
+        captureStop = Bind<DeviceAction>("alcCaptureStop");
+        closeDevice = Bind<CloseDevice>("alcCaptureCloseDevice");
+        getInteger = Bind<GetInteger>("alcGetIntegerv");
+        captureSamples = Bind<CaptureSamples>("alcCaptureSamples");
+        getString = Bind<GetString>("alcGetString");
     }
 
     public static void UnloadOpenAL()
     {
-        al?.Dispose();
-        alc?.Dispose();
+        if (library != IntPtr.Zero)
+            NativeLibrary.Free(library);
+        library = IntPtr.Zero;
     }
 
     public delegate void BufferReady(short[] buffer);

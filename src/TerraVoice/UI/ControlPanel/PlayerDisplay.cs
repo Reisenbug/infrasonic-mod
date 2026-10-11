@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using MonoMod.Utils;
 using ReLogic.Content;
 using ReLogic.Graphics;
 using System.Collections.Generic;
@@ -152,14 +153,15 @@ internal class PlayerDisplay : SmartUIElement
 
     private void DrawPlayerHead(SpriteBatch spriteBatch, Player drawPlayer, Vector2 position, Color borderColor)
     {
+        var renderer = DynamicData.For(Main.MapPlayerRenderer);
         PlayerHeadDrawRenderTargetContent playerHeadDrawRenderTargetContent =
-            Main.MapPlayerRenderer._playerRenders[drawPlayer.whoAmI];
+            renderer.Get<PlayerHeadDrawRenderTargetContent[]>("_playerRenders")[drawPlayer.whoAmI];
 
         playerHeadDrawRenderTargetContent.UsePlayer(drawPlayer);
         playerHeadDrawRenderTargetContent.Request();
 
-        Main.MapPlayerRenderer._anyDirty = true;
-        Main.MapPlayerRenderer._drawData.Clear();
+        renderer.Set("_anyDirty", true);
+        renderer.Get<System.Collections.IList>("_drawData").Clear();
 
         if (!playerHeadDrawRenderTargetContent.IsReady) 
             return;

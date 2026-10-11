@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace TerraVoice.Src.Native;
 
-internal unsafe struct NativeString : IDisposable
+internal struct NativeString : IDisposable
 {
     public IntPtr Handle;
 
