@@ -1,6 +1,6 @@
 displayName = InfraSonic
 author = Oli, Cyrilly, 轩天一夏
-version = 2.1.5
+version = 2.1.6
 dllReferences = P-OpusCore
 buildIgnore = *.csproj, *.user, obj\*, bin\*, .vs\*
 hideResources = false

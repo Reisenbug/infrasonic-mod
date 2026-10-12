@@ -27,9 +27,12 @@ for (int team = 0; team <= 5; team++)
     player.Player.team = team;
     player.PostUpdate();
     Check(data.Channel.Value == team, "Team channel " + team);
+    Check(Terraria.Main.Messages.Count == team + 1 && Terraria.Main.Messages[^1].Contains($"重置为 {team}"), "Local channel reset notification " + team);
+    Check(Terraria.Main.Messages[^1].Contains("0 无队伍、1 红队、2 绿队、3 蓝队、4 黄队、5 粉队"), "Notification includes all team channels");
     data.Channel.Value = 9;
     player.PostUpdate();
     Check(data.Channel.Value == 9, "Manual channel persists for team " + team);
+    Check(Terraria.Main.Messages.Count == team + 1, "Unchanged team does not repeat notification " + team);
 }
 player.OnEnterWorld();
 player.PostUpdate();
@@ -38,11 +41,17 @@ player.Player.whoAmI = 1;
 player.Player.team = 2;
 player.PostUpdate();
 Check(data.Channel.Value == 5, "Remote players cannot change local channel");
+Check(Terraria.Main.Messages.Count == 7, "Remote players do not send local notification");
 
 namespace Terraria
 {
     public sealed class Player { public int whoAmI; public int team; }
-    public static class Main { public static int myPlayer; }
+    public static class Main
+    {
+        public static int myPlayer;
+        public static readonly List<string> Messages = new();
+        public static void NewText(string text) => Messages.Add(text);
+    }
 }
 namespace Terraria.ModLoader
 {

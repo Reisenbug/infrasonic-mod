@@ -18,5 +18,6 @@ internal sealed class TeamVoicePlayer : ModPlayer
 
         previousTeam = Player.team;
         PersistentDataStoreSystem.GetDataStore<UserDataStore>().Channel.Value = Player.team;
+        Main.NewText($"[InfraSonic] 语音频道已按队伍重置为 {Player.team}。频道对应：0 无队伍、1 红队、2 绿队、3 蓝队、4 黄队、5 粉队。可在语音面板中自行修改。");
     }
 }
