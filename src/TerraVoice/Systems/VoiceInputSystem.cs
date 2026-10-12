@@ -34,8 +34,11 @@ internal sealed class VoiceInputSystem : ModSystem
 
     public override void PreSaveAndQuit()
     {
-        microphone.StopRecording();
-        microphone.OnBufferReady -= HandleAudioInputBuffer;
+        if (microphone != null)
+        {
+            microphone.StopRecording();
+            microphone.OnBufferReady -= HandleAudioInputBuffer;
+        }
 
         recording = false;
     }
@@ -44,7 +47,7 @@ internal sealed class VoiceInputSystem : ModSystem
     {
         UserDataStore data = PersistentDataStoreSystem.GetDataStore<UserDataStore>();
 
-        if (data.MicrophoneEnabled.Value && !recording)
+        if (data.MicrophoneEnabled.Value && !recording && microphone != null)
         {
             microphone.OnBufferReady += HandleAudioInputBuffer;
             microphone.StartRecording();

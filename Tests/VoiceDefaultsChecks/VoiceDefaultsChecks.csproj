@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../src/TerraVoice/IO/UserDataStore.cs" Link="UserDataStore.cs" />
+    <Compile Include="../../src/TerraVoice/IO/PersistentDataStoreSystem.cs" Link="PersistentDataStoreSystem.cs" />
+    <Compile Include="../../src/TerraVoice/Systems/TeamVoicePlayer.cs" Link="TeamVoicePlayer.cs" />
+  </ItemGroup>
+</Project>

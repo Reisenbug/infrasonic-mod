@@ -8,16 +8,16 @@ internal class UserDataStore : PersistentDataStore
 {
     public override string FileName => "voice_settings.dat";
 
-    public Ref<bool> MicrophoneEnabled = new();
+    public Ref<bool> MicrophoneEnabled = new(true);
     public Ref<bool> TestMode = new();
     public Ref<bool> NoiseSuppression = new();
     public Ref<bool> NoIcons = new();
-    public Ref<bool> OpenMic = new();
-    public Ref<bool> PushToTalk = new(true);
+    public Ref<bool> OpenMic = new(true);
+    public Ref<bool> PushToTalk = new();
 
     public Ref<float> Amplification = new(1);
 
-    public Ref<int> ProximityDistance = new(64);
+    public Ref<int> ProximityDistance = new();
     public Ref<int> Channel = new();
     
     public Ref<string> Device = new();
@@ -39,10 +39,17 @@ internal class UserDataStore : PersistentDataStore
         LoadTag(tag, nameof(Channel), Channel);
 
         LoadTag(tag, nameof(Device), Device);
+        if (!tag.ContainsKey("TeamVoiceDefaultsApplied"))
+        {
+            MicrophoneEnabled.Value = OpenMic.Value = true;
+            PushToTalk.Value = false;
+            ProximityDistance.Value = 0;
+        }
     }
 
     public override void SaveGlobal(TagCompound tag)
     {
+        tag["TeamVoiceDefaultsApplied"] = true;
         tag[nameof(MicrophoneEnabled)] = MicrophoneEnabled.Value;
         tag[nameof(TestMode)] = TestMode.Value;
         tag[nameof(NoiseSuppression)] = NoiseSuppression.Value;
